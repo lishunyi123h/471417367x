@@ -6,6 +6,7 @@ from bert4keras.models import build_transformer_model
 from bert4keras.tokenizers import Tokenizer
 from bert4keras.snippets import open
 import json
+import pandas as pd
 
 
 class Nerparams:
@@ -36,7 +37,7 @@ class Intentionparams:
 class Simparams:
     def __init__(self):
         self.max_seq_length = 128
-        self.corpus_text = 'data/corpus.json'
+        self.corpus_text = 'data/corpus3.json'
         self.config_path = 'data/chinese_simbert_L-12_H-768_A-12/bert_config.json'
         self.checkpoint_path = 'data/chinese_simbert_L-12_H-768_A-12/bert_model.ckpt'
         self.vocab_file = 'data/chinese_simbert_L-12_H-768_A-12/vocab.txt'
@@ -62,5 +63,26 @@ class Simparams:
         for c, v in self.corpus.items():
             self.list_vec.append(v)
             self.list_corpus.append(c)
+        # 新增语料
+        df = pd.read_excel('data/新增数据.xlsx')
+        for vn in range(len(df)):
+            self.list_corpus.append(df['新增语料'][vn])
+            self.list_vec.append(self.vec(df['新增语料'][vn]))
 
         self.list_vec = np.concatenate(self.list_vec).reshape(-1, 768)
+
+    def vec(self, query):
+        token_ids, segment_ids = self.tokenizer.encode(query, max_length=self.max_seq_length)
+        vec = self.encoder.predict([[token_ids], [segment_ids]])[0]
+        # 求单位向量
+        vec /= (vec ** 2).sum() ** 0.5
+        return vec
+
+
+class Senpairsparams:
+    def __init__(self):
+        self.max_seq_length = 128
+        self.senpairs_model = tf.contrib.predictor.from_saved_model('data/senpairs_model')
+
+        self.labels_list = ["0", "1"]
+        self.tokenizer = tokenization.FullTokenizer(vocab_file='data/vocab.txt', do_lower_case=True)
